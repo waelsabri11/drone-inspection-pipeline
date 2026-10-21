@@ -28,3 +28,22 @@ def test_split_is_disjoint_stratified_and_deterministic():
     for k in a:
         labels = np.array([l for _, l in a[k]])
         assert abs(labels.mean() - 0.5) < 0.01
+
+
+def test_cross_dataset_patch_labelling_rule():
+    from gnn_inspect.crack.cross_data import patch_label
+
+    assert patch_label(0.0) == 0
+    assert patch_label(0.0001) is None  # hairline fragment: dropped
+    assert patch_label(0.0099) is None
+    assert patch_label(0.01) == 1 and patch_label(0.5) == 1
+
+
+def test_strong_augmentation_preserves_shape_and_dtype():
+    import torch
+
+    from gnn_inspect.crack.train import strong_aug
+
+    x = torch.randint(0, 255, (3, 224, 224, 3), dtype=torch.uint8)
+    y = strong_aug(x)
+    assert y.shape == x.shape and y.dtype == torch.uint8

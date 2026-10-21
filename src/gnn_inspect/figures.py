@@ -75,8 +75,29 @@ def route_figure():
     fig.savefig(REP / "route_comparison.png", dpi=150)
 
 
+def cross_figure():
+    d = json.loads((RES / "crack" / "cross_dataset.json").read_text())["summary"]
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.4), sharey=False)
+    for ax, metric, title in zip(axes, ["f1", "pr_auc"], ["F1 at threshold 0.5", "PR-AUC (threshold-free)"]):
+        for i, ds in enumerate(["deepcrack", "crackforest"]):
+            for j, (arch, aug) in enumerate([(a, g) for a in NAMES for g in ("light", "strong")]):
+                v = d[f"{arch}|{aug}|{ds}"][metric]
+                x = i * 5 + j
+                ax.bar(x, v["mean"], color=("tab:blue", "tab:cyan", "tab:red", "tab:orange")[j],
+                       yerr=[[v["mean"] - v["ci95"][0]], [v["ci95"][1] - v["mean"]]], capsize=2,
+                       label=f"{NAMES[arch]} / {aug} aug" if i == 0 else None)
+        ax.set_xticks([1.5, 6.5], ["DeepCrack", "CrackForest"])
+        ax.set_title(title, fontsize=9)
+        ax.set_ylim(0.4 if metric == "f1" else 0.9, 1.0)
+    axes[0].legend(fontsize=6, loc="lower left")
+    fig.suptitle("Trained on METU only, no fine-tuning; mean of 3 seeds, 95% bootstrap CI over images", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(REP / "cross_dataset.png", dpi=150)
+
+
 def main():
     REP.mkdir(exist_ok=True)
+    cross_figure()
     confusion_figure()
     compression_figure()
     route_figure()

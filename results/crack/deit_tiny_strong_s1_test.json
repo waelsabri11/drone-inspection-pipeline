@@ -1,0 +1,26 @@
+{
+  "precision": 0.9940357852882704,
+  "recall": 1.0,
+  "f1": 0.9970089730807578,
+  "accuracy": 0.997,
+  "confusion": [
+    [
+      3976,
+      24
+    ],
+    [
+      0,
+      4000
+    ]
+  ],
+  "arch": "deit_tiny",
+  "val_f1": 0.9957679860592482,
+  "train_seconds": 280.00168895721436,
+  "device": "mps",
+  "n_train": 8000,
+  "n_val": 4000,
+  "n_test": 8000,
+  "epochs": 3,
+  "seed": 1,
+  "aug": "strong"
+}

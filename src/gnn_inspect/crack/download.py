@@ -14,6 +14,39 @@ URL = "https://data.mendeley.com/public-files/datasets/5y9wdsg2zt/files/8a70d8a5
 SHA256 = "08d7dc505a4f5a0330cee2fa2a1ae4b5b4f98bcffd0549b774caf7959bb1f02f"
 
 
+DEEPCRACK = ("https://github.com/yhlleo/DeepCrack/raw/master/dataset/DeepCrack.zip",
+             "ec3fc2bee3b71c2cc3c74739cbc51c97b77f78193d08ce3dda0e16d7d41bf585")
+CF_API = "https://api.github.com/repos/cuilimeng/CrackForest-dataset/contents/"
+
+
+def _get(url, dest):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req) as r, open(dest, "wb") as f:
+        f.write(r.read())
+
+
+def _cross_datasets():
+    """DeepCrack (SHA-256 checked) and CrackForest (118 images + .mat masks) for the cross-dataset test."""
+    import json
+
+    raw = RAW.parent
+    dc = raw / "deepcrack"
+    if not (dc / "train_img").exists():
+        dc.mkdir(parents=True, exist_ok=True)
+        _get(DEEPCRACK[0], dc / "DeepCrack.zip")
+        assert hashlib.sha256((dc / "DeepCrack.zip").read_bytes()).hexdigest() == DEEPCRACK[1], "checksum mismatch"
+        subprocess.run(["bsdtar", "-xf", "DeepCrack.zip"], cwd=dc, check=True)
+    cf = raw / "crackforest"
+    if not (cf / "groundTruth").exists():
+        for sub in ("image", "groundTruth"):
+            (cf / sub).mkdir(parents=True, exist_ok=True)
+            req = urllib.request.Request(CF_API + sub, headers={"User-Agent": "Mozilla/5.0"})
+            for item in json.load(urllib.request.urlopen(req)):
+                if item["name"].endswith((".jpg", ".mat")):
+                    _get(item["download_url"], cf / sub / item["name"])
+    print("cross-dataset data ready in", raw)
+
+
 def main():
     RAW.mkdir(parents=True, exist_ok=True)
     rar = RAW / "crack.rar"
@@ -25,7 +58,8 @@ def main():
                     f.write(chunk)
         assert hashlib.sha256(rar.read_bytes()).hexdigest() == SHA256, "checksum mismatch"
         subprocess.run(["bsdtar", "-xf", rar.name], cwd=RAW, check=True)
-    print("dataset ready in", RAW)
+    print("METU ready in", RAW)
+    _cross_datasets()
 
 
 if __name__ == "__main__":

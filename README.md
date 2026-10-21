@@ -8,6 +8,8 @@ An end-to-end pipeline on **public data and synthetic site graphs**, all runnabl
 
 I built it in 2026 as a follow-up to my 2022 ENSTA Paris / U2IS internship on drone crack inspection (A* path planning with graph-centrality prioritisation, C++/ROS; a vision module was started there but not finished). **None of the numbers below come from that internship**: it used different data and code. Everything here was re-implemented and measured on public data; every figure comes from a script in this repo (`results/*.json` are the raw outputs).
 
+> **Headline.** The in-domain crack F1 (0.999) is leaky and saturated; do not quote it as accuracy. The honest number is the **cross-dataset** one: trained only on METU, no fine-tuning, DeiT-Tiny reaches F1 0.93–0.96 / PR-AUC 0.99 on DeepCrack and F1 0.63–0.75 / PR-AUC 0.96–0.98 on CrackForest (road pavement), with a fixed 0.5 threshold that is clearly mis-calibrated on roads (precision ≈ 1.0, recall 0.4–0.6). See section 1b.
+
 ![confusion matrices](reports/confusion_matrices.png)
 
 ## 1. Crack detection: CNN vs ViT
@@ -22,6 +24,39 @@ I built it in 2026 as a follow-up to my 2022 ENSTA Paris / U2IS internship on dr
 | DeiT-Tiny (ViT) | 0.9990 | 0.9995 | 0.9993 | 0.9993 | 4 / 2 |
 
 Precision/recall are for the crack class, single run (one seed). **The two models are indistinguishable here**: both make 6 errors out of 8,000, and a 2-error difference would not be significant anyway. The score is near the ceiling of this dataset, so it says little about which architecture is better and, more importantly, **should not be read as real-world accuracy** (see Limitations).
+
+### 1b. Cross-dataset generalization (the honest number)
+
+Models trained on METU only are evaluated with **no fine-tuning and no threshold tuning** on two other public datasets, both downloaded without login into `data/raw/` (git-ignored; `make data`):
+
+| Dataset | Source | Content | License | Patches used |
+|---|---|---|---|---|
+| [DeepCrack](https://github.com/yhlleo/DeepCrack) (Liu et al., Neurocomputing 2019) | GitHub, `DeepCrack.zip` (SHA-256 `ec3fc2be…bf585`) | 537 images 544×384 with masks: concrete, brick, stone, mixed scenes | none stated (citation requested; used here for evaluation only, no redistribution) | 6,018 (48.7% crack), from 537 images |
+| [CrackForest](https://github.com/cuilimeng/CrackForest-dataset) (Shi et al., IEEE T-ITS 2016) | GitHub (118 images + `.mat` masks) | road pavement 480×320 | none stated (citation requested; evaluation only) | 650 (62.9% crack), from 118 images |
+
+**Mask → patch label rule** (`crack/cross_data.py`, tested): non-overlapping 128×128 windows, upsampled to 224. Positive if ≥ 1% of the window's pixels are crack in the mask, negative if 0 crack pixels, **dropped otherwise** (hairline fragments). The 1% threshold is my choice and was fixed before looking at any model output; other thresholds would change the numbers. Neither dataset has a stated license; they were only read, not redistributed or modified in the repo.
+
+Metrics are computed at the fixed 0.5 threshold plus PR-AUC (average precision), which is independent of the threshold. **3 seeds** per configuration (seeds 0, 1, 2: different init of the classifier head, batch order and augmentation). Table: mean over seeds; [95% CI] = bootstrap over **source images** (1,000 replicates, metric averaged over seeds in each replicate, so it reflects test-set sampling only); "sd" = std across the 3 seeds.
+
+| Model | Aug | DeepCrack F1 | DeepCrack PR-AUC | CrackForest P / R | CrackForest F1 | CrackForest PR-AUC |
+|---|---|---:|---:|---:|---:|---:|
+| ResNet-18 | light | 0.911 [0.901, 0.920] sd 0.002 | 0.978 [0.973, 0.982] | 0.996 / 0.428 | 0.598 [0.521, 0.661] sd 0.032 | 0.961 [0.947, 0.972] |
+| ResNet-18 | strong | 0.894 [0.883, 0.903] sd 0.025 | 0.970 [0.963, 0.975] | 0.991 / 0.395 | 0.554 [0.490, 0.611] sd 0.123 | 0.939 [0.920, 0.954] |
+| DeiT-Tiny | light | 0.934 [0.926, 0.941] sd 0.019 | 0.990 [0.988, 0.992] | 1.000 / 0.459 | 0.627 [0.560, 0.689] sd 0.051 | 0.962 [0.949, 0.974] |
+| DeiT-Tiny | strong | 0.958 [0.952, 0.964] sd 0.002 | 0.992 [0.990, 0.994] | 0.996 / 0.610 | 0.753 [0.703, 0.803] sd 0.060 | 0.981 [0.971, 0.990] |
+
+![cross-dataset results](reports/cross_dataset.png)
+
+- **Drop from in-domain to out-of-domain is large**: F1 0.999 → 0.55–0.63 on road pavement at threshold 0.5 (light aug), and 0.91–0.93 on the closer DeepCrack. That gap is the real finding about this dataset's in-domain score.
+- **It is largely a calibration shift, not a loss of ranking ability**: on CrackForest precision is ≈ 1.0 but recall only 0.4–0.6, while PR-AUC stays at 0.94–0.98. A threshold re-tuned on a few target-domain images would recover most of it; I did not do that, to keep the evaluation free of target-domain information.
+- **DeiT-Tiny generalized better than ResNet-18** here (DeepCrack F1 0.934 vs 0.911 and PR-AUC 0.990 vs 0.978 with light aug; the CIs do not overlap). On CrackForest the two light-aug models are within noise of each other. Only 3 seeds, 2 datasets; I would not generalise this to "ViTs generalize better".
+
+### 1c. Data augmentation study
+
+*Light* = random flips (the baseline used so far). *Strong* = random-resized-crop (scale 0.3–1), flips, rotation ±30°, color jitter (brightness/contrast 0.4, saturation 0.3, hue 0.05), Gaussian blur (p 0.4), grayscale (p 0.2), JPEG re-compression (quality 20–90, p 0.5) and Gaussian noise (p 0.4). Same data subset, epochs, optimiser and 3 seeds. In-domain test F1 with strong aug is slightly *lower* (ResNet-18 0.9969–0.9976, DeiT-Tiny 0.9970–0.9976, vs 0.9987–0.9994 with light aug), which is expected when the training distribution is wider than the (leaky) in-domain test. The comparison that matters is the cross-dataset one in the table above:
+
+- **DeiT-Tiny: strong augmentation helped**: DeepCrack F1 0.934 → 0.958, CrackForest F1 0.627 → 0.753 (recall 0.46 → 0.61) and PR-AUC 0.962 → 0.981. The CrackForest improvement is suggestive but not conclusive: the image-bootstrap CIs barely separate ([0.560, 0.689] vs [0.703, 0.803]), which ignores training-seed variance, and the across-seed std is 0.05–0.06 with only 3 seeds. The PR-AUC gain on DeepCrack (0.990 → 0.992) is within noise; the F1 gain there comes mostly from recall at the fixed threshold.
+- **ResNet-18: strong augmentation did not help**: F1 and PR-AUC are slightly lower on both datasets (0.911 → 0.894 and 0.598 → 0.554 F1), with CIs overlapping and one of the three strong-aug seeds far better than the other two (CrackForest F1 0.45 / 0.49 / 0.73), so the seed variance exceeds any effect. With 3 epochs of training the CNN may simply be under-trained for this harder augmentation; I did not test longer schedules.
 
 ## 2. Compression: accuracy vs size vs CPU latency
 
@@ -64,6 +99,21 @@ What it shows (and what it does not):
 - **PyTorch dynamic quantization only touches `nn.Linear`**: for ResNet-18 that is just the classifier, so size and accuracy are unchanged and it is slower. It is listed as a baseline, not as a recommendation.
 - **Unstructured pruning does not make dense inference faster or the file smaller**: latency is unchanged and the raw file stays the same size (zeros are stored). Only compressed storage (gzip column) shrinks. Pruning without fine-tuning is destructive at 80%; with one epoch of fine-tuning the CNN keeps F1 0.996 at 80% sparsity and the ViT 0.989.
 - Latency numbers on a laptop CPU are noisy: repeated runs of the same ResNet-18 ORT static variant gave 2.7–3.6 ms at batch 1 while other processes were or were not running. Treat differences below ~30% as noise. Single seed, no confidence intervals.
+
+### 2b. Does operator fusion rescue ViT int8?
+
+Hypothesis: DeiT-Tiny int8 was not faster because Q/DQ nodes wrap unfused LayerNorm / GELU. I ran the `onnxruntime.transformers` optimizer (`model_type="vit"`, 3 heads, hidden 192) on the fp32 ONNX graph, then quantized the fused graph, and re-measured with the same protocol as section 2 (CPU, 4 threads, same 8,000 test images; `make vit-fused`).
+
+| Variant | Graph nodes | Test F1 | FP/FN | File MB | ms, bs 1 | ms, bs 32 |
+|---|---:|---:|---:|---:|---:|---:|
+| ORT fp32, unfused | 861 | 0.9993 | 4/2 | 22.3 | 5.0 | 131 |
+| ORT fp32, fused | 368 | 0.9993 | 4/2 | 22.2 | 4.9 | 135 |
+| unfused + dynamic int8 | 1,064 | 0.9991 | 5/2 | 6.0 | 5.3 | 136 |
+| fused + dynamic int8 | 571 | 0.9991 | 5/2 | 5.9 | 5.3 | 137 |
+| unfused + static int8 (QDQ) | 1,896 | 0.9991 | 5/2 | 6.2 | 7.6 | 175 |
+| fused + static int8 (QDQ) | 1,080 | 0.9990 | 6/2 | 6.1 | 6.1 | 151 |
+
+Result: **fusion did not make int8 faster than fp32.** The optimizer fused LayerNorm+residual into 24 `SkipLayerNormalization` and GELU into 12 `BiasGelu` (it did not fuse the attention block itself; Softmax nodes remain). Fusion halved the node count but fp32 latency stayed the same; static int8 improved from 7.6 to 6.1 ms at batch 1 (and 175 to 151 ms at batch 32) but stays slower than fp32 (4.9 ms), and dynamic int8 did not change. So Q/DQ overhead around unfused ops explains part of the static-int8 slowdown, not the lack of a gain. Size reduction (~3.7×) and accuracy are unaffected. Same caveat as before: laptop CPU, noisy timings (~30%).
 
 ## 3. Planning: graph analysis, greedy + A*, OR-Tools
 
@@ -188,7 +238,8 @@ The true severity is never given as input.
 ## Limitations
 
 - **The crack scores are optimistic.** The 40k patches are crops of only 458 photos, and I split *randomly by patch*, so near-identical neighbouring patches can land in train and test. Both models score F1 0.9993 and compression barely moves it, which is what a saturated, leaky benchmark looks like. The dataset has no photo IDs, so I could not split by source photo. This is a clean-concrete patch classifier, not a validated field crack detector; no cross-dataset test (e.g. on road or bridge images) was run.
-- **One seed, one split** for the vision experiments: no confidence intervals; the 6-error difference between any two near-ceiling models is noise.
+- **Seeds and splits**: the in-domain table (section 1) is one seed and one split; the cross-dataset study uses 3 seeds and image-level bootstrap CIs, which do not cover training-seed variance (reported separately as sd). The 6-error difference between near-ceiling models is noise.
+- **Cross-dataset scope**: two small external datasets (DeepCrack, 537 images; CrackForest, 118 images from one road source), labels derived from masks with my 1% rule, no license stated for either; the 0.5 threshold was not re-calibrated. Results would likely differ on other surfaces, resolutions or camera distances. Augmentation conclusions rest on 3 seeds and a 3-epoch schedule.
 - **Compression**: latencies are from a laptop CPU at 4 threads, noisy, not from drone hardware; no hardware-specific int8 kernels or NPU were tried; unstructured pruning gives no dense speed-up; pruning was done once per sparsity with a single fine-tuning epoch and no tuning.
 - **The detector → graph link is simulated** (how photos relate to hidden severity, 4 patches per waypoint, 60% survey coverage). The sites are synthetic and generated by me; results show the pipeline works under those assumptions, not that it would work on a real structure.
 - **Solvers**: OR-Tools is a local-search heuristic with a time limit, verified optimal only on small (10-candidate) instances; the "reference" in section 4 is an OR-Tools run, not a proven optimum. Single-drone, static, 2-D, no obstacles/wind/battery model beyond a distance budget.
@@ -200,8 +251,10 @@ The true severity is never given as input.
 make setup                       # uv venv + editable install
 make data                        # download METU concrete-crack set (CC BY 4.0) into data/raw/ (needs bsdtar for .rar)
 make train compress              # ~6 min + ~20 min on an M4 Pro (MPS for training; CPU for latency)
+make cross                       # 10 more training runs (light/strong aug x seeds) ~40 min, then cross-dataset eval
+make vit-fused                   # operator fusion + int8 for DeiT-Tiny, ~2 min
 make planning pipeline gnn       # ~6 min + ~20 min + ~6 min
-make figures test                # reports/*.png; 31 pytest tests
+make figures test                # reports/*.png; 33 pytest tests
 ```
 
 Layout: `src/gnn_inspect/crack/` (data, models, train, compress, predict, download), `routing.py` (OR-Tools solvers), `priority.py`, `planner.py` (A*, greedy itinerary), `baselines.py`, `model.py` (GNN), `pipeline.py`, `bench_planning.py`, `experiment.py` (Part A), `figures.py`. Results: `results/` (JSON + tables), figures: `reports/`.
