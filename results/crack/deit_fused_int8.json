@@ -1,0 +1,161 @@
+{
+  "threads": 4,
+  "rows": [
+    {
+      "variant": "ORT fp32 (unfused)",
+      "size_mb": 22.288034,
+      "f1": 0.9992501874531368,
+      "precision": 0.999000499750125,
+      "recall": 0.9995,
+      "confusion": [
+        [
+          3996,
+          4
+        ],
+        [
+          2,
+          3998
+        ]
+      ],
+      "lat_bs1_ms": 5.0443960062693805,
+      "lat_bs32_ms": 130.6533124879934,
+      "ops": {
+        "LayerNormalization": 25,
+        "total_nodes": 861,
+        "Softmax": 12,
+        "Erf": 12
+      }
+    },
+    {
+      "variant": "ORT fp32 (fused)",
+      "size_mb": 22.227775,
+      "f1": 0.9992501874531368,
+      "precision": 0.999000499750125,
+      "recall": 0.9995,
+      "confusion": [
+        [
+          3996,
+          4
+        ],
+        [
+          2,
+          3998
+        ]
+      ],
+      "lat_bs1_ms": 4.876124992733821,
+      "lat_bs32_ms": 135.4695420304779,
+      "ops": {
+        "LayerNormalization": 1,
+        "SkipLayerNormalization": 24,
+        "BiasGelu": 12,
+        "total_nodes": 368,
+        "Softmax": 12,
+        "Erf": 0
+      }
+    },
+    {
+      "variant": "fused + dynamic int8",
+      "size_mb": 5.920311,
+      "f1": 0.9991253280019993,
+      "precision": 0.9987509367974019,
+      "recall": 0.9995,
+      "confusion": [
+        [
+          3995,
+          5
+        ],
+        [
+          2,
+          3998
+        ]
+      ],
+      "lat_bs1_ms": 5.295208509778604,
+      "lat_bs32_ms": 136.72831250005402,
+      "ops": {
+        "LayerNormalization": 1,
+        "SkipLayerNormalization": 24,
+        "BiasGelu": 12,
+        "total_nodes": 571,
+        "Softmax": 12,
+        "Erf": 0
+      }
+    },
+    {
+      "variant": "fused + static int8 (QDQ)",
+      "size_mb": 6.070369,
+      "f1": 0.9990004997501248,
+      "precision": 0.9985014985014985,
+      "recall": 0.9995,
+      "confusion": [
+        [
+          3994,
+          6
+        ],
+        [
+          2,
+          3998
+        ]
+      ],
+      "lat_bs1_ms": 6.0669164813589305,
+      "lat_bs32_ms": 151.02347946958616,
+      "ops": {
+        "LayerNormalization": 1,
+        "SkipLayerNormalization": 24,
+        "BiasGelu": 12,
+        "total_nodes": 1080,
+        "Softmax": 12,
+        "Erf": 0
+      }
+    },
+    {
+      "variant": "unfused + dynamic int8",
+      "size_mb": 5.977132,
+      "f1": 0.9991253280019993,
+      "precision": 0.9987509367974019,
+      "recall": 0.9995,
+      "confusion": [
+        [
+          3995,
+          5
+        ],
+        [
+          2,
+          3998
+        ]
+      ],
+      "lat_bs1_ms": 5.321062490111217,
+      "lat_bs32_ms": 135.8729160274379,
+      "ops": {
+        "LayerNormalization": 25,
+        "total_nodes": 1064,
+        "Softmax": 12,
+        "Erf": 12
+      }
+    },
+    {
+      "variant": "unfused + static int8 (QDQ)",
+      "size_mb": 6.187994,
+      "f1": 0.9991253280019993,
+      "precision": 0.9987509367974019,
+      "recall": 0.9995,
+      "confusion": [
+        [
+          3995,
+          5
+        ],
+        [
+          2,
+          3998
+        ]
+      ],
+      "lat_bs1_ms": 7.609333464642987,
+      "lat_bs32_ms": 175.1869170111604,
+      "ops": {
+        "LayerNormalization": 25,
+        "total_nodes": 1896,
+        "Softmax": 12,
+        "Erf": 12
+      }
+    }
+  ]
+}
