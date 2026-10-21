@@ -2,7 +2,7 @@
 
 This project trains a graph neural network to rank the inspection waypoints a drone should visit on a structure. It then compares that ranking with the hand-crafted centrality rankings used before: degree, betweenness, closeness and PageRank. Each ranking drives the same battery-limited itinerary planner.
 
-It extends my 2022 ENSTA Paris / U2IS internship on drone crack inspection. There, the site was modelled as a graph, inspection points were prioritised with centrality measures, and paths were planned with A* under battery limits. This repository is a new, independent 2026 project. It runs on **synthetic** sites (see Limits).
+I built this in 2026 as a follow-up to my 2022 ENSTA Paris / U2IS internship on drone crack inspection, where I prioritised inspection points with graph centrality and planned paths with A* under battery limits. Here, a GNN learns that ranking instead. It is evaluated on procedurally generated inspection sites, which allow a controlled comparison across 1,000 unseen test sites (5 seeds).
 
 ## Results
 
