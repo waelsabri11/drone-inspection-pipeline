@@ -1,7 +1,7 @@
 [project]
 name = "gnn-drone-inspection"
 version = "0.1.0"
-description = "Learning to rank drone inspection waypoints with a GNN (PyTorch Geometric), compared with centrality baselines"
+description = "Drone inspection pipeline: crack detection (CNN vs ViT), compression, graph prioritisation (GNN/centralities) and OR-Tools routing"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -10,6 +10,13 @@ dependencies = [
     "networkx>=3.2",
     "numpy>=1.26",
     "scipy>=1.11",
+    "torchvision",
+    "timm>=1.0",
+    "onnx",
+    "onnxruntime>=1.18",
+    "ortools>=9.10",
+    "matplotlib",
+    "pillow",
 ]
 
 [project.optional-dependencies]

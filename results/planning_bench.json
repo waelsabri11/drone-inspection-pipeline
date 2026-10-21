@@ -1,0 +1,54 @@
+{
+  "n_sites": 30,
+  "k": 15,
+  "seed": 123,
+  "orienteering": {
+    "10%": {
+      "greedy_found": 2.784696817878476,
+      "ortools_found": 2.788864887274578,
+      "ortools_gain_pct": 0.14967767296396595,
+      "greedy_ms": 0.03539856794911127,
+      "ortools_ms": 2001.3419555286723,
+      "ortools_ge_greedy_in": 22,
+      "of": 30
+    },
+    "20%": {
+      "greedy_found": 8.45972127621116,
+      "ortools_found": 8.969225879278566,
+      "ortools_gain_pct": 6.022711463321362,
+      "greedy_ms": 0.11565139478382964,
+      "ortools_ms": 2001.3098124375879,
+      "ortools_ge_greedy_in": 22,
+      "of": 30
+    },
+    "30%": {
+      "greedy_found": 12.930216109484073,
+      "ortools_found": 13.446346368335272,
+      "ortools_gain_pct": 3.9916599574281397,
+      "greedy_ms": 0.12829163460992277,
+      "ortools_ms": 2001.3119054317938,
+      "ortools_ge_greedy_in": 17,
+      "of": 30
+    }
+  },
+  "tsp": {
+    "nn_len": 3.9544371601932045,
+    "ortools_len": 3.578151517979351,
+    "ortools_shorter_pct": 9.515529694128933,
+    "nn_ms": 0.28370976603279513,
+    "ortools_ms": 1000.927405600669
+  },
+  "cover_vrp": {
+    "feasible_sites": 26,
+    "of": 30,
+    "mean_drones": 1.6923076923076923,
+    "total_len": 4.516840755700809,
+    "single_unlimited_tsp_len": 3.4130080870772064
+  },
+  "exact_check": {
+    "instances": 28,
+    "ortools_vs_exact": 1.0,
+    "ortools_min": 1.0,
+    "greedy_vs_exact": 0.9940447410880633
+  }
+}

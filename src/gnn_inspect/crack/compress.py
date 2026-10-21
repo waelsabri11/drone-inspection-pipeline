@@ -178,6 +178,7 @@ def main(argv=None):
     add("ORT static int8 (QDQ)", "quantization", met, l1, l32, mb(st))
 
     # --- PyTorch dynamic int8 on Linear layers
+    torch.backends.quantized.engine = "qnnpack"  # only engine in Apple-silicon builds
     q = torch.ao.quantization.quantize_dynamic(fresh(), {torch.nn.Linear}, dtype=torch.qint8)
     met, l1, l32 = measure_torch(q, xte, yte, lat_x)
     add("PyTorch dynamic int8 (Linear)", "quantization", met, l1, l32, state_mb(q)[0])

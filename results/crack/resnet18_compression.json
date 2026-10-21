@@ -1,0 +1,205 @@
+{
+  "arch": "resnet18",
+  "threads": 4,
+  "n_test": 8000,
+  "latency_note": "median ms per call, CPU, batch 1 and 32, 224x224",
+  "rows": [
+    {
+      "variant": "PyTorch fp32",
+      "kind": "baseline",
+      "size_mb": 44.788171,
+      "lat_bs1_ms": 13.171124999644235,
+      "lat_bs32_ms": 424.00379199534655,
+      "precision": 0.999000499750125,
+      "recall": 0.9995,
+      "f1": 0.9992501874531368,
+      "accuracy": 0.99925,
+      "confusion": [
+        [
+          3996,
+          4
+        ],
+        [
+          2,
+          3998
+        ]
+      ]
+    },
+    {
+      "variant": "ONNX Runtime fp32",
+      "kind": "baseline",
+      "size_mb": 44.703772,
+      "lat_bs1_ms": 7.4514585139695555,
+      "lat_bs32_ms": 246.44366698339581,
+      "precision": 0.999000499750125,
+      "recall": 0.9995,
+      "f1": 0.9992501874531368,
+      "accuracy": 0.99925,
+      "confusion": [
+        [
+          3996,
+          4
+        ],
+        [
+          2,
+          3998
+        ]
+      ]
+    },
+    {
+      "variant": "ORT dynamic int8",
+      "kind": "quantization",
+      "size_mb": 11.229849,
+      "lat_bs1_ms": 6.7119790182914585,
+      "lat_bs32_ms": 204.50560451718047,
+      "precision": 0.9977533699450823,
+      "recall": 0.99925,
+      "f1": 0.9985011241568822,
+      "accuracy": 0.9985,
+      "confusion": [
+        [
+          3991,
+          9
+        ],
+        [
+          3,
+          3997
+        ]
+      ]
+    },
+    {
+      "variant": "ORT static int8 (QDQ)",
+      "kind": "quantization",
+      "size_mb": 11.294792,
+      "lat_bs1_ms": 3.5706665366888046,
+      "lat_bs32_ms": 106.50781251024455,
+      "precision": 0.999000499750125,
+      "recall": 0.9995,
+      "f1": 0.9992501874531368,
+      "accuracy": 0.99925,
+      "confusion": [
+        [
+          3996,
+          4
+        ],
+        [
+          2,
+          3998
+        ]
+      ]
+    },
+    {
+      "variant": "PyTorch dynamic int8 (Linear)",
+      "kind": "quantization",
+      "size_mb": 44.785863,
+      "lat_bs1_ms": 20.944854011759162,
+      "lat_bs32_ms": 985.8820625231601,
+      "precision": 0.999000499750125,
+      "recall": 0.9995,
+      "f1": 0.9992501874531368,
+      "accuracy": 0.99925,
+      "confusion": [
+        [
+          3996,
+          4
+        ],
+        [
+          2,
+          3998
+        ]
+      ]
+    },
+    {
+      "variant": "magnitude prune 50% (no fine-tune)",
+      "kind": "pruning",
+      "size_mb": 44.788171,
+      "lat_bs1_ms": NaN,
+      "lat_bs32_ms": NaN,
+      "precision": 0.9997474747474747,
+      "recall": 0.98975,
+      "f1": 0.9947236180904523,
+      "accuracy": 0.99475,
+      "confusion": [
+        [
+          3999,
+          1
+        ],
+        [
+          41,
+          3959
+        ]
+      ],
+      "gzip_mb": 25.039854,
+      "nonzero_weights": 0.5000458455349315
+    },
+    {
+      "variant": "magnitude prune 50% + 1 ep fine-tune",
+      "kind": "pruning",
+      "size_mb": 44.788171,
+      "lat_bs1_ms": 15.907708497252315,
+      "lat_bs32_ms": 426.0139584657736,
+      "precision": 0.9987512487512488,
+      "recall": 0.99975,
+      "f1": 0.9992503748125937,
+      "accuracy": 0.99925,
+      "confusion": [
+        [
+          3995,
+          5
+        ],
+        [
+          1,
+          3999
+        ]
+      ],
+      "gzip_mb": 25.039854,
+      "nonzero_weights": 0.5000458455349315
+    },
+    {
+      "variant": "magnitude prune 80% (no fine-tune)",
+      "kind": "pruning",
+      "size_mb": 44.788171,
+      "lat_bs1_ms": NaN,
+      "lat_bs32_ms": NaN,
+      "precision": 0.9272727272727272,
+      "recall": 0.01275,
+      "f1": 0.025154130702836,
+      "accuracy": 0.505875,
+      "confusion": [
+        [
+          3996,
+          4
+        ],
+        [
+          3949,
+          51
+        ]
+      ],
+      "gzip_mb": 12.881195,
+      "nonzero_weights": 0.20007331703906614
+    },
+    {
+      "variant": "magnitude prune 80% + 1 ep fine-tune",
+      "kind": "pruning",
+      "size_mb": 44.788171,
+      "lat_bs1_ms": 16.17893748334609,
+      "lat_bs32_ms": 437.959666014649,
+      "precision": 0.9955056179775281,
+      "recall": 0.99675,
+      "f1": 0.9961274203622736,
+      "accuracy": 0.996125,
+      "confusion": [
+        [
+          3982,
+          18
+        ],
+        [
+          13,
+          3987
+        ]
+      ],
+      "gzip_mb": 12.881195,
+      "nonzero_weights": 0.20007331703906614
+    }
+  ]
+}
