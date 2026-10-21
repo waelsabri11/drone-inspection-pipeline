@@ -8,7 +8,7 @@ An end-to-end pipeline on **public data and synthetic site graphs**, all runnabl
 
 I built it in 2026 as a follow-up to my 2022 ENSTA Paris / U2IS internship on drone crack inspection (A* path planning with graph-centrality prioritisation, C++/ROS; a vision module was started there but not finished). **None of the numbers below come from that internship**: it used different data and code. Everything here was re-implemented and measured on public data; every figure comes from a script in this repo (`results/*.json` are the raw outputs).
 
-> **Headline.** The in-domain crack F1 (0.999) is leaky and saturated; do not quote it as accuracy. The honest number is the **cross-dataset** one: trained only on METU, no fine-tuning, DeiT-Tiny reaches F1 0.93–0.96 / PR-AUC 0.99 on DeepCrack and F1 0.63–0.75 / PR-AUC 0.96–0.98 on CrackForest (road pavement), with a fixed 0.5 threshold that is clearly mis-calibrated on roads (precision ≈ 1.0, recall 0.4–0.6). See section 1b.
+> **Headline.** The in-domain crack F1 (0.999) is leaky and saturated; do not quote it as accuracy. The honest number is the **cross-dataset** one: trained only on METU, no fine-tuning, DeiT-Tiny reaches F1 0.93–0.96 / PR-AUC 0.99 on DeepCrack and F1 0.63–0.65 / PR-AUC 0.96–0.97 on CrackForest (road pavement), with a fixed 0.5 threshold that is clearly mis-calibrated on roads (precision ≈ 1.0, recall ≈ 0.4–0.5). See sections 1b and 1c.
 
 ![confusion matrices](reports/confusion_matrices.png)
 
@@ -40,23 +40,34 @@ Metrics are computed at the fixed 0.5 threshold plus PR-AUC (average precision),
 
 | Model | Aug | DeepCrack F1 | DeepCrack PR-AUC | CrackForest P / R | CrackForest F1 | CrackForest PR-AUC |
 |---|---|---:|---:|---:|---:|---:|
-| ResNet-18 | light | 0.911 [0.901, 0.920] sd 0.002 | 0.978 [0.973, 0.982] | 0.996 / 0.428 | 0.598 [0.521, 0.661] sd 0.032 | 0.961 [0.947, 0.972] |
-| ResNet-18 | strong | 0.894 [0.883, 0.903] sd 0.025 | 0.970 [0.963, 0.975] | 0.991 / 0.395 | 0.554 [0.490, 0.611] sd 0.123 | 0.939 [0.920, 0.954] |
-| DeiT-Tiny | light | 0.934 [0.926, 0.941] sd 0.019 | 0.990 [0.988, 0.992] | 1.000 / 0.459 | 0.627 [0.560, 0.689] sd 0.051 | 0.962 [0.949, 0.974] |
-| DeiT-Tiny | strong | 0.958 [0.952, 0.964] sd 0.002 | 0.992 [0.990, 0.994] | 0.996 / 0.610 | 0.753 [0.703, 0.803] sd 0.060 | 0.981 [0.971, 0.990] |
+| ResNet-18 | light (flips) | 0.911 [0.901, 0.920] sd 0.002 | 0.978 [0.973, 0.982] | 0.996 / 0.428 | 0.598 [0.521, 0.661] sd 0.032 | 0.961 [0.947, 0.972] |
+| ResNet-18 | moderate | 0.917 [0.909, 0.926] sd 0.012 | 0.981 [0.977, 0.985] | 0.998 / 0.401 | 0.566 [0.502, 0.630] sd 0.097 | 0.961 [0.947, 0.973] |
+| DeiT-Tiny | light (flips) | 0.934 [0.926, 0.941] sd 0.019 | 0.990 [0.988, 0.992] | 1.000 / 0.459 | 0.627 [0.560, 0.689] sd 0.051 | 0.962 [0.949, 0.974] |
+| DeiT-Tiny | moderate | 0.958 [0.952, 0.963] sd 0.002 | 0.994 [0.992, 0.995] | 1.000 / 0.487 | 0.653 [0.590, 0.715] sd 0.040 | 0.973 [0.961, 0.983] |
 
 ![cross-dataset results](reports/cross_dataset.png)
 
-- **Drop from in-domain to out-of-domain is large**: F1 0.999 → 0.55–0.63 on road pavement at threshold 0.5 (light aug), and 0.91–0.93 on the closer DeepCrack. That gap is the real finding about this dataset's in-domain score.
-- **It is largely a calibration shift, not a loss of ranking ability**: on CrackForest precision is ≈ 1.0 but recall only 0.4–0.6, while PR-AUC stays at 0.94–0.98. A threshold re-tuned on a few target-domain images would recover most of it; I did not do that, to keep the evaluation free of target-domain information.
+- **Drop from in-domain to out-of-domain is large**: F1 0.999 → 0.57–0.65 on road pavement at threshold 0.5, and 0.91–0.96 on the closer DeepCrack. That gap is the real finding about this dataset's in-domain score.
+- **It is largely a calibration shift, not a loss of ranking ability**: on CrackForest precision is ≈ 1.0 but recall only 0.40–0.49, while PR-AUC stays at 0.96–0.97. A threshold re-tuned on a few target-domain images would recover most of it; I did not do that, to keep the evaluation free of target-domain information.
 - **DeiT-Tiny generalized better than ResNet-18** here (DeepCrack F1 0.934 vs 0.911 and PR-AUC 0.990 vs 0.978 with light aug; the CIs do not overlap). On CrackForest the two light-aug models are within noise of each other. Only 3 seeds, 2 datasets; I would not generalise this to "ViTs generalize better".
 
 ### 1c. Data augmentation study
 
-*Light* = random flips (the baseline used so far). *Strong* = random-resized-crop (scale 0.3–1), flips, rotation ±30°, color jitter (brightness/contrast 0.4, saturation 0.3, hue 0.05), Gaussian blur (p 0.4), grayscale (p 0.2), JPEG re-compression (quality 20–90, p 0.5) and Gaussian noise (p 0.4). Same data subset, epochs, optimiser and 3 seeds. In-domain test F1 with strong aug is slightly *lower* (ResNet-18 0.9969–0.9976, DeiT-Tiny 0.9970–0.9976, vs 0.9987–0.9994 with light aug), which is expected when the training distribution is wider than the (leaky) in-domain test. The comparison that matters is the cross-dataset one in the table above:
+**Protocol (fixed a priori; nothing tuned or selected on external data).** Exactly two settings, same seeds (0, 1, 2), data subset, epochs and optimiser: *light* = random flips (baseline used everywhere else) vs *moderate* = random 90° rotations, flips, random-resized-crop (scale 0.5–1, aspect 0.9–1.1), color jitter (brightness/contrast 0.3, saturation 0.2, hue 0.03), Gaussian blur 3×3 (σ 0.1–1.0, p 0.3), JPEG re-compression (quality 40–95, p 0.5), Gaussian noise (σ 2–8, p 0.3) and light random erasing (2–8% of the area, p 0.2). Applied to training images only; crop, blur and erasing are kept mild so thin cracks stay visible. There is no development split of the external data. *Disclosure:* I first ran a harsher recipe (crops down to 30%, ±30° rotations, grayscale, stronger blur/JPEG) before this protocol was specified; it was discarded, not tuned, and its raw outputs are kept in `results/crack/aug_v1/` (it looked similar: helped DeiT-Tiny, not ResNet-18).
 
-- **DeiT-Tiny: strong augmentation helped**: DeepCrack F1 0.934 → 0.958, CrackForest F1 0.627 → 0.753 (recall 0.46 → 0.61) and PR-AUC 0.962 → 0.981. The CrackForest improvement is suggestive but not conclusive: the image-bootstrap CIs barely separate ([0.560, 0.689] vs [0.703, 0.803]), which ignores training-seed variance, and the across-seed std is 0.05–0.06 with only 3 seeds. The PR-AUC gain on DeepCrack (0.990 → 0.992) is within noise; the F1 gain there comes mostly from recall at the fixed threshold.
-- **ResNet-18: strong augmentation did not help**: F1 and PR-AUC are slightly lower on both datasets (0.911 → 0.894 and 0.598 → 0.554 F1), with CIs overlapping and one of the three strong-aug seeds far better than the other two (CrackForest F1 0.45 / 0.49 / 0.73), so the seed variance exceeds any effect. With 3 epochs of training the CNN may simply be under-trained for this harder augmentation; I did not test longer schedules.
+In-domain METU test F1 (8,000 images, 3 seeds, mean; per-seed errors out of 8,000):
+
+| Model | light | moderate |
+|---|---:|---:|
+| ResNet-18 | 0.9992 (6, 8, 5 errors) | 0.9986 (16, 10, 7 errors) |
+| DeiT-Tiny | 0.9990 (6, 10, 7 errors) | 0.9988 (8, 11, 11 errors) |
+
+External test results are in the table of section 1b (same rows). Outcome:
+
+- **DeiT-Tiny: moderate augmentation helped on the closer domain, little on the farther one.** DeepCrack F1 0.934 → 0.958 (CIs do not overlap; recall 0.900 → 0.946; seed sd 0.019 → 0.002) and PR-AUC 0.990 → 0.994. CrackForest F1 0.627 → 0.653 and PR-AUC 0.962 → 0.973, but the CIs overlap heavily and the seed std is 0.04–0.05, so I would not call that a gain.
+- **ResNet-18: augmentation did not help.** DeepCrack F1 0.911 → 0.917 and PR-AUC 0.978 → 0.981 (within noise); CrackForest F1 0.598 → 0.566 (the seed sd rose from 0.03 to 0.10) and PR-AUC unchanged at 0.961.
+- **In-domain**, augmentation is neutral to slightly worse (a few more errors out of 8,000, within seed variation).
+- **Net:** a standard augmentation recipe gives at most a modest, model-dependent gain on a nearby domain and none on road pavement. The dominant problem on CrackForest is the shifted decision threshold, which augmentation did not fix. 3 seeds and a 3-epoch schedule: these are small effects measured with limited power.
 
 ## 2. Compression: accuracy vs size vs CPU latency
 
@@ -224,7 +235,7 @@ The true severity is never given as input.
 
 - **The crack scores are optimistic.** The 40k patches are crops of only 458 photos, and I split *randomly by patch*, so near-identical neighbouring patches can land in train and test. Both models score F1 0.9993 and compression barely moves it, which is what a saturated, leaky benchmark looks like. The dataset has no photo IDs, so I could not split by source photo. This is a clean-concrete patch classifier, not a validated field crack detector; no cross-dataset test (e.g. on road or bridge images) was run.
 - **Seeds and splits**: the in-domain table (section 1) is one seed and one split; the cross-dataset study uses 3 seeds and image-level bootstrap CIs, which do not cover training-seed variance (reported separately as sd). The 6-error difference between near-ceiling models is noise.
-- **Cross-dataset scope**: two small external datasets (DeepCrack, 537 images; CrackForest, 118 images from one road source), labels derived from masks with my 1% rule, no license stated for either; the 0.5 threshold was not re-calibrated. Results would likely differ on other surfaces, resolutions or camera distances. Augmentation conclusions rest on 3 seeds and a 3-epoch schedule.
+- **Cross-dataset scope**: two small external datasets (DeepCrack, 537 images; CrackForest, 118 images from one road source), labels derived from masks with my 1% rule, no license stated for either; the 0.5 threshold was not re-calibrated. Results would likely differ on other surfaces, resolutions or camera distances. Augmentation conclusions rest on 3 seeds, one fixed recipe and a 3-epoch schedule.
 - **Compression**: latencies are from a laptop CPU at 4 threads, noisy, not from drone hardware; no hardware-specific int8 kernels or NPU were tried; unstructured pruning gives no dense speed-up; pruning was done once per sparsity with a single fine-tuning epoch and no tuning.
 - **The detector → graph link is simulated** (how photos relate to hidden severity, 4 patches per waypoint, 60% survey coverage). The sites are synthetic and generated by me; results show the pipeline works under those assumptions, not that it would work on a real structure.
 - **Solvers**: OR-Tools is a local-search heuristic with a time limit, verified optimal only on small (10-candidate) instances; the "reference" in section 4 is an OR-Tools run, not a proven optimum. Single-drone, static, 2-D, no obstacles/wind/battery model beyond a distance budget.
@@ -236,7 +247,7 @@ The true severity is never given as input.
 make setup                       # uv venv + editable install
 make data                        # download METU concrete-crack set (CC BY 4.0) into data/raw/ (needs bsdtar for .rar)
 make train compress              # ~6 min + ~20 min on an M4 Pro (MPS for training; CPU for latency)
-make cross                       # 10 more training runs (light/strong aug x seeds) ~40 min, then cross-dataset eval
+make cross                       # 10 more training runs (light/moderate aug x seeds) ~40 min, then cross-dataset eval
 make planning pipeline gnn       # ~6 min + ~20 min + ~6 min
 make figures test                # reports/*.png; 33 pytest tests
 ```

@@ -1,0 +1,26 @@
+{
+  "precision": 0.9967581047381546,
+  "recall": 0.99925,
+  "f1": 0.9980024968789014,
+  "accuracy": 0.998,
+  "confusion": [
+    [
+      3987,
+      13
+    ],
+    [
+      3,
+      3997
+    ]
+  ],
+  "arch": "resnet18",
+  "val_f1": 0.9975049900199602,
+  "train_seconds": 234.59670209884644,
+  "device": "mps",
+  "n_train": 8000,
+  "n_val": 4000,
+  "n_test": 8000,
+  "epochs": 3,
+  "seed": 0,
+  "aug": "moderate"
+}

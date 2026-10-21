@@ -39,11 +39,11 @@ def test_cross_dataset_patch_labelling_rule():
     assert patch_label(0.01) == 1 and patch_label(0.5) == 1
 
 
-def test_strong_augmentation_preserves_shape_and_dtype():
+def test_augment_batchmentation_preserves_shape_and_dtype():
     import torch
 
-    from gnn_inspect.crack.train import strong_aug
+    from gnn_inspect.crack.train import augment_batch
 
     x = torch.randint(0, 255, (3, 224, 224, 3), dtype=torch.uint8)
-    y = strong_aug(x)
+    y = augment_batch(x)
     assert y.shape == x.shape and y.dtype == torch.uint8

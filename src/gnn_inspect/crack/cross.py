@@ -46,7 +46,7 @@ def main():
     ck = ROOT / "checkpoints"
     runs = {}
     for arch in ARCHS:
-        for aug in ("light", "strong"):
+        for aug in ("light", "moderate"):
             for seed in range(3):
                 tag = arch if (aug == "light" and seed == 0) else f"{arch}_{aug}_s{seed}"
                 if (ck / f"{tag}.pt").exists():
@@ -60,7 +60,7 @@ def main():
             out["runs"]["|".join(map(str, key)) + "|" + d] = metrics(data[d][1], P[key + (d,)])
     rng = np.random.default_rng(0)
     for arch in ARCHS:
-        for aug in ("light", "strong"):
+        for aug in ("light", "moderate"):
             seeds = [s for s in range(3) if (arch, aug, s) in runs]
             if not seeds:
                 continue

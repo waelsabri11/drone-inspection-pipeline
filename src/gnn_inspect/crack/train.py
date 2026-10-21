@@ -19,27 +19,30 @@ from .models import build, prep
 LR = {"resnet18": 5e-4, "deit_tiny": 1e-4}
 
 
-def _strong_one(img):
-    """img: uint8 (H,W,3) tensor -> uint8 (H,W,3). Domain-shift oriented augmentation."""
+def _moderate_one(img):
+    """img: uint8 (H,W,3) tensor -> uint8. Moderate domain-shift recipe, fixed a priori (not tuned on any
+    external data). Crop/blur/erasing are kept mild so thin cracks stay visible."""
     import torchvision.transforms.v2 as T
     x = img.permute(2, 0, 1)
+    k = int(torch.randint(0, 4, (1,)))
+    x = torch.rot90(x, k, dims=(1, 2))
     tf = T.Compose([
-        T.RandomResizedCrop(224, scale=(0.3, 1.0), antialias=True),
+        T.RandomResizedCrop(224, scale=(0.5, 1.0), ratio=(0.9, 1.1), antialias=True),
         T.RandomHorizontalFlip(), T.RandomVerticalFlip(),
-        T.RandomRotation(30),
-        T.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.3, hue=0.05),
-        T.RandomApply([T.GaussianBlur(5, sigma=(0.1, 2.0))], p=0.4),
-        T.RandomGrayscale(p=0.2),
-        T.RandomApply([T.JPEG((20, 90))], p=0.5),
+        T.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2, hue=0.03),
+        T.RandomApply([T.GaussianBlur(3, sigma=(0.1, 1.0))], p=0.3),
+        T.RandomApply([T.JPEG((40, 95))], p=0.5),
     ])
     x = tf(x).float()
-    if torch.rand(1).item() < 0.4:  # gaussian sensor noise
-        x = x + torch.randn_like(x) * torch.empty(1).uniform_(2, 12).item()
-    return x.clamp(0, 255).to(torch.uint8).permute(1, 2, 0)
+    if torch.rand(1).item() < 0.3:  # light gaussian sensor noise
+        x = x + torch.randn_like(x) * torch.empty(1).uniform_(2, 8).item()
+    x = x.clamp(0, 255).to(torch.uint8)
+    x = T.RandomErasing(p=0.2, scale=(0.02, 0.08), value=0)(x)  # small patch, light
+    return x.permute(1, 2, 0)
 
 
-def strong_aug(xb):
-    return torch.stack([_strong_one(im) for im in xb])
+def augment_batch(xb):
+    return torch.stack([_moderate_one(im) for im in xb])
 
 
 def device():
@@ -62,7 +65,7 @@ def main(argv=None):
     ap.add_argument("--epochs", type=int, default=3)
     ap.add_argument("--bs", type=int, default=64)
     ap.add_argument("--n-train", type=int, default=8000)
-    ap.add_argument("--aug", choices=["light", "strong"], default="light")
+    ap.add_argument("--aug", choices=["light", "moderate"], default="light")
     ap.add_argument("--seed", type=int, default=SEED)
     a = ap.parse_args(argv)
 
@@ -87,8 +90,8 @@ def main(argv=None):
         for i in range(len(ytr) // a.bs):
             idx = np.sort(perm[i * a.bs : (i + 1) * a.bs])
             xb = torch.from_numpy(np.ascontiguousarray(xtr[idx]))
-            if a.aug == "strong":
-                xb = strong_aug(xb)
+            if a.aug == "moderate":
+                xb = augment_batch(xb)
             xb = xb.to(dev)
             if a.aug == "light":
                 if torch.rand(1, generator=g).item() < 0.5:

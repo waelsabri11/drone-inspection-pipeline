@@ -80,7 +80,7 @@ def cross_figure():
     fig, axes = plt.subplots(1, 2, figsize=(9, 3.4), sharey=False)
     for ax, metric, title in zip(axes, ["f1", "pr_auc"], ["F1 at threshold 0.5", "PR-AUC (threshold-free)"]):
         for i, ds in enumerate(["deepcrack", "crackforest"]):
-            for j, (arch, aug) in enumerate([(a, g) for a in NAMES for g in ("light", "strong")]):
+            for j, (arch, aug) in enumerate([(a, g) for a in NAMES for g in ("light", "moderate")]):
                 v = d[f"{arch}|{aug}|{ds}"][metric]
                 x = i * 5 + j
                 ax.bar(x, v["mean"], color=("tab:blue", "tab:cyan", "tab:red", "tab:orange")[j],

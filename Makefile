@@ -23,6 +23,6 @@ test:
 	$(PY) -m pytest -q
 all: data train compress planning pipeline figures test
 cross:       ## augmentation x seeds, then cross-dataset evaluation
-	for a in resnet18 deit_tiny; do for c in "light 1" "light 2" "strong 0" "strong 1" "strong 2"; do set -- $$c; \
+	for a in resnet18 deit_tiny; do for c in "light 1" "light 2" "moderate 0" "moderate 1" "moderate 2"; do set -- $$c; \
 	  $(PY) -m gnn_inspect.crack.train --arch $$a --aug $$1 --seed $$2; done; done
 	$(PY) -m gnn_inspect.crack.cross
