@@ -100,21 +100,6 @@ What it shows (and what it does not):
 - **Unstructured pruning does not make dense inference faster or the file smaller**: latency is unchanged and the raw file stays the same size (zeros are stored). Only compressed storage (gzip column) shrinks. Pruning without fine-tuning is destructive at 80%; with one epoch of fine-tuning the CNN keeps F1 0.996 at 80% sparsity and the ViT 0.989.
 - Latency numbers on a laptop CPU are noisy: repeated runs of the same ResNet-18 ORT static variant gave 2.7–3.6 ms at batch 1 while other processes were or were not running. Treat differences below ~30% as noise. Single seed, no confidence intervals.
 
-### 2b. Does operator fusion rescue ViT int8?
-
-Hypothesis: DeiT-Tiny int8 was not faster because Q/DQ nodes wrap unfused LayerNorm / GELU. I ran the `onnxruntime.transformers` optimizer (`model_type="vit"`, 3 heads, hidden 192) on the fp32 ONNX graph, then quantized the fused graph, and re-measured with the same protocol as section 2 (CPU, 4 threads, same 8,000 test images; `make vit-fused`).
-
-| Variant | Graph nodes | Test F1 | FP/FN | File MB | ms, bs 1 | ms, bs 32 |
-|---|---:|---:|---:|---:|---:|---:|
-| ORT fp32, unfused | 861 | 0.9993 | 4/2 | 22.3 | 5.0 | 131 |
-| ORT fp32, fused | 368 | 0.9993 | 4/2 | 22.2 | 4.9 | 135 |
-| unfused + dynamic int8 | 1,064 | 0.9991 | 5/2 | 6.0 | 5.3 | 136 |
-| fused + dynamic int8 | 571 | 0.9991 | 5/2 | 5.9 | 5.3 | 137 |
-| unfused + static int8 (QDQ) | 1,896 | 0.9991 | 5/2 | 6.2 | 7.6 | 175 |
-| fused + static int8 (QDQ) | 1,080 | 0.9990 | 6/2 | 6.1 | 6.1 | 151 |
-
-Result: **fusion did not make int8 faster than fp32.** The optimizer fused LayerNorm+residual into 24 `SkipLayerNormalization` and GELU into 12 `BiasGelu` (it did not fuse the attention block itself; Softmax nodes remain). Fusion halved the node count but fp32 latency stayed the same; static int8 improved from 7.6 to 6.1 ms at batch 1 (and 175 to 151 ms at batch 32) but stays slower than fp32 (4.9 ms), and dynamic int8 did not change. So Q/DQ overhead around unfused ops explains part of the static-int8 slowdown, not the lack of a gain. Size reduction (~3.7×) and accuracy are unaffected. Same caveat as before: laptop CPU, noisy timings (~30%).
-
 ## 3. Planning: graph analysis, greedy + A*, OR-Tools
 
 **Graph analysis** (`priority.py`, `baselines.py`): degree, betweenness, closeness (length-weighted) and PageRank (1/length weights) of the site graph, plus a combined priority = 0.7 × (defect evidence smoothed over neighbours) + 0.3 × normalised betweenness. **A\*** (Euclidean heuristic, admissible because edge lengths ≥ Euclidean distance) is tested to match Dijkstra; the greedy nearest-neighbour tours use it to expand every leg into a waypoint path (the greedy itinerary planner itself reads a precomputed all-pairs distance matrix).
@@ -252,7 +237,6 @@ make setup                       # uv venv + editable install
 make data                        # download METU concrete-crack set (CC BY 4.0) into data/raw/ (needs bsdtar for .rar)
 make train compress              # ~6 min + ~20 min on an M4 Pro (MPS for training; CPU for latency)
 make cross                       # 10 more training runs (light/strong aug x seeds) ~40 min, then cross-dataset eval
-make vit-fused                   # operator fusion + int8 for DeiT-Tiny, ~2 min
 make planning pipeline gnn       # ~6 min + ~20 min + ~6 min
 make figures test                # reports/*.png; 33 pytest tests
 ```

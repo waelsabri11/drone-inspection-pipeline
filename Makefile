@@ -1,6 +1,6 @@
 PY := .venv/bin/python
 
-.PHONY: cross vit-fused setup data train compress planning pipeline figures gnn test all
+.PHONY: cross setup data train compress planning pipeline figures gnn test all
 setup:
 	uv venv --python 3.12 .venv && uv pip install --python $(PY) -e ".[dev]"
 data:        ## download METU (CC BY 4.0) + DeepCrack + CrackForest into data/raw/ (git-ignored, untrusted data)
@@ -26,5 +26,3 @@ cross:       ## augmentation x seeds, then cross-dataset evaluation
 	for a in resnet18 deit_tiny; do for c in "light 1" "light 2" "strong 0" "strong 1" "strong 2"; do set -- $$c; \
 	  $(PY) -m gnn_inspect.crack.train --arch $$a --aug $$1 --seed $$2; done; done
 	$(PY) -m gnn_inspect.crack.cross
-vit-fused:
-	$(PY) -m gnn_inspect.crack.vit_fused
